@@ -19,7 +19,7 @@
         <module>order-service-manager</module>
         <module>settlement-service-manager</module>
         <module>reward-service-manager</module>
-        <module>sql</module>
+
     </modules>
     <properties>
         <java.version>1.8</java.version>
