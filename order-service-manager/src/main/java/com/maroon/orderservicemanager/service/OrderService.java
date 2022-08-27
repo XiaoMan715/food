@@ -64,11 +64,21 @@ public class OrderService {
             String messageToSend=objectMapper.writeValueAsString(orderMessageDTO);
             //开启发送端确认模式
             channel.confirmSelect();
-            channel.basicPublish(
+
+
+           /* channel.basicPublish(
                     "exchange.order.restaurant",
                     "key.restaurant",
                     null,
-                    messageToSend.getBytes());
+                    messageToSend.getBytes());*/
+//多条同步消息确认 一次性先发送多条消息 然后再确认
+            for (int i = 0; i < 10; i++) {
+                channel.basicPublish(
+                        "exchange.order.restaurant",
+                        "key.restaurant",
+                        null,
+                        messageToSend.getBytes());
+            }
             log.info("message");
             //发送消息后调用waitForConfirms()方法 会返回true或者false 然后就可以根据状态进行业务操作 重复或者之间入库的
             if (channel.waitForConfirms()) {
