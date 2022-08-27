@@ -32,7 +32,7 @@ public class OrderService {
      * 创建订单
      * @param orderCreateVO 前端传入vo
      */
-    public void createOrder(OrderCreateVO orderCreateVO) throws IOException, TimeoutException {
+    public void createOrder(OrderCreateVO orderCreateVO) throws IOException, TimeoutException, InterruptedException {
         //将前端传入的vo赋值给数据库映射类po
         OrderDetailPO orderDetailPO =new OrderDetailPO();
         //设置用户id
@@ -62,11 +62,20 @@ public class OrderService {
                 Channel channel=connection.createChannel()){
          //发送的对象转换成为字符串
             String messageToSend=objectMapper.writeValueAsString(orderMessageDTO);
+            //开启发送端确认模式
+            channel.confirmSelect();
             channel.basicPublish(
                     "exchange.order.restaurant",
                     "key.restaurant",
                     null,
                     messageToSend.getBytes());
+            log.info("message");
+            //发送消息后调用waitForConfirms()方法 会返回true或者false 然后就可以根据状态进行业务操作 重复或者之间入库
+            if (channel.waitForConfirms()) {
+                log.info("发送成功");
+            }else {
+                log.info("发送失败");
+            }
 
         }
     }
