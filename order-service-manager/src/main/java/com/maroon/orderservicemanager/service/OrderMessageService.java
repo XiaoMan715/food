@@ -219,7 +219,7 @@ public class OrderMessageService {
                              Channel channel = connection.createChannel()
                         ) {
                             String messageToSend = new String(objectMapper.writeValueAsBytes(orderMessageDTO));
-                            channel.basicPublish("exchange.settlement.order", "key.settlement", null, messageToSend.getBytes());
+                            channel.basicPublish("exchange.order.settlement", "key.settlement", null, messageToSend.getBytes());
 
                         } catch (Exception e) {
                             log.error(e.getMessage(), e);
@@ -230,8 +230,29 @@ public class OrderMessageService {
                     }
                     break;
                 case DELVERTMAN_CONFIRMED:
+                    if (null != orderMessageDTO.getSettlementId()) {
+                        orderDetailPO.setStatus(OrderStatus.SETTLEMENT_CONFIRMED);
+                        orderDetailPO.setSettlementId(orderMessageDTO.getSettlementId());
+                        orderDetailDao.update(orderDetailPO);
+                        try (Connection connection = connectionFactory.newConnection();
+                             Channel channel = connection.createChannel()) {
+                            String messageToSend = objectMapper.writeValueAsString(orderMessageDTO);
+                            channel.basicPublish("exchange.order.reward", "key.reward", null, messageToSend.getBytes());
+                        }
+                    } else {
+                        orderDetailPO.setStatus(OrderStatus.FAILED);
+                        orderDetailDao.update(orderDetailPO);
+                    }
                     break;
                 case SETTLEMENT_CONFIRMED:
+                    if (null != orderMessageDTO.getRewardId()) {
+                        orderDetailPO.setStatus(OrderStatus.ORDER_CREATED);
+                        orderDetailPO.setRewardId(orderMessageDTO.getRewardId());
+                        orderDetailDao.update(orderDetailPO);
+                    } else {
+                        orderDetailPO.setStatus(OrderStatus.FAILED);
+                        orderDetailDao.update(orderDetailPO);
+                    }
                     break;
                 case FAILED:
                     break;
