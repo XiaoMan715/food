@@ -70,7 +70,7 @@ public class OrderService {
                     null,
                     messageToSend.getBytes());
             log.info("message");
-            //发送消息后调用waitForConfirms()方法 会返回true或者false 然后就可以根据状态进行业务操作 重复或者之间入库
+            //发送消息后调用waitForConfirms()方法 会返回true或者false 然后就可以根据状态进行业务操作 重复或者之间入库的
             if (channel.waitForConfirms()) {
                 log.info("发送成功");
             }else {
