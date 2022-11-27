@@ -87,14 +87,16 @@ public class OrderService {
             };
             //把异步方法添加到channel里
             channel.addConfirmListener(confirmListener);
-            for (int i = 0; i < 10; i++) {
+
+            for (int i = 0; i < 50; i++) {
                 channel.basicPublish(
                         "exchange.order.restaurant",
                         "key.restaurant",
                         null,
                         messageToSend.getBytes());
-                log.info("send messgae");
             }
+
+            log.info("send messgae");
             Thread.sleep(100000);
 
            /* channel.basicPublish(

@@ -36,9 +36,9 @@ public class OrderMessageServcie {
      */
     @Async
     public void handleMessage() {
-        ConnectionFactory connectionFactory =new ConnectionFactory();
+        ConnectionFactory connectionFactory = new ConnectionFactory();
         connectionFactory.setHost("localhost");
-        try( Connection connection = connectionFactory.newConnection();
+        try (Connection connection = connectionFactory.newConnection();
              Channel channel = connection.createChannel()
         ) {
             //谁监听一个队列 谁就要做好申明一哥队列的工作
@@ -62,15 +62,15 @@ public class OrderMessageServcie {
                     "key.restaurant");
 
             //当queue.restaurant队列有消息发来的时候 就会回调deliverCallback方法里的函数
-            channel.basicConsume("queue.restaurant", true, deliverCallback, consumerTag -> {
+            channel.basicConsume("queue.restaurant", false, deliverCallback, consumerTag -> {
 
             });
             while (true) {
                 Thread.sleep(100000);
             }
 
-        }catch (Exception e){
-            log.error(e.getMessage(),e);
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
         }
     }
 
@@ -86,11 +86,11 @@ public class OrderMessageServcie {
         connectionFactory.setHost("localhost");
         try {
             OrderMessageDTO orderMessageDTO = objectMapper.readValue(messageBody, OrderMessageDTO.class);
-            log.info("orderMessageDTO:{}",orderMessageDTO);
+            log.info("orderMessageDTO:{}", orderMessageDTO);
             /**
              * 根据传过来的消息里面去查询数据库里的产品和餐馆
              */
-            Integer productId =orderMessageDTO.getProductId();
+            Integer productId = orderMessageDTO.getProductId();
             ProductPO productPO = productDao.selectProduct(productId);
 
             RestaurantPO restaurantPO = restaurantDao.selsctRestaurant(productPO.getRestaurantId());
@@ -107,8 +107,32 @@ public class OrderMessageServcie {
             //返回消息给生产者
             try (Connection connection = connectionFactory.newConnection();
                  Channel channel = connection.createChannel()) {
+                //当消息找不到队列的时候 并且basicPublish方法里的Mandatory设置为true（默认是false）会调用这个方法
+               /* channel.addReturnListener(new ReturnListener() {
+                    @Override
+                    public void handleReturn(int replyCode, String replyText, String exchange, String routingKey, AMQP.BasicProperties properties, byte[] body) throws IOException {
+                        log.info("ReturnListener: replyCode:{},replyText:{},exchange:{},routingKey:{},properties:{},body:{}",
+                                replyCode,replyText,exchange,routingKey,properties,new String(body)
+                                );
+                    }
+                });*/
+
+                channel.addReturnListener(new ReturnCallback() {
+                    @Override
+                    public void handle(Return returnMessage) {
+                        log.info("returnMessage{}",returnMessage);
+                    }
+                });
+                /**
+                 *
+                 */
+                channel.basicAck(message.getEnvelope().getDeliveryTag(),false);
+
                 String messageToSend = objectMapper.writeValueAsString(orderMessageDTO);
-                channel.basicPublish("exchange.order.restaurant", "key.order", null, messageToSend.getBytes());
+                //实现消息返回机制 设置Mandatory为true 当消息丢失的时候 他会调用addReturnListener()方法
+                channel.basicPublish("exchange.order.restaurant", "key.order", true, null, messageToSend.getBytes());
+
+                //   channel.basicPublish("exchange.order.restaurant", "key.order", null, messageToSend.getBytes());
 
             }
 

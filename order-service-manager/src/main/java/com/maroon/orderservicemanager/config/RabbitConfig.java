@@ -1,6 +1,9 @@
 package com.maroon.orderservicemanager.config;
 
 import com.maroon.orderservicemanager.service.OrderMessageService;
+import org.springframework.amqp.core.DirectExchange;
+import org.springframework.amqp.core.Exchange;
+import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 
@@ -17,5 +20,12 @@ public class RabbitConfig {
     @Autowired
     public void startListenMessage(){
         orderMessageService.handleMessage();
+    }
+
+    @Autowired
+    public void  initRabbit(){
+        CachingConnectionFactory  connectionFactory = new CachingConnectionFactory();
+        Exchange exchange=new DirectExchange("");
+
     }
 }
